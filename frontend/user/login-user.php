@@ -17,6 +17,9 @@
         <?php if (isset($_GET['error'])): ?>
             <div id="error-message" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
         <?= htmlspecialchars($_GET['error']) ?>
+        <?php elseif (isset($_GET['registro'])): ?>
+            <div id="register-message" class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+        <?= htmlspecialchars($_GET['registro']) ?>
     </div>
 <?php endif; ?>
 
