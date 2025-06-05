@@ -1,3 +1,15 @@
+<?php
+session_start();
+
+require_once("../utils/variables.php");
+require_once("../utils/funciones.php");
+
+// Solo administradores pueden acceder
+if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] == 3) {
+    header("Location: ../index.php");
+    exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -105,7 +117,7 @@
             const formData = new FormData(form);
 
             try {
-                const response = await fetch('../backend/crear_concurso.php', {
+                const response = await fetch('../../backend/concurso/procesar-crear-concurso.php', {
                     method: 'POST',
                     body: formData
                 });

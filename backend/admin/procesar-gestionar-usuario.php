@@ -1,11 +1,11 @@
 <?php
 session_start();
-require_once("../utils/variables.php");
-require_once("../utils/funciones.php");
+require_once("../../utils/variables.php");
+require_once("../../utils/funciones.php");
 
 // Verificar sesión y rol
 if (!isset($_SESSION['admin_id']) || $_SESSION['rol_id'] != 1) {
-    header("Location: ../public/index.php");
+    header("Location: ../../frontend/index.php");
     exit;
 }
 

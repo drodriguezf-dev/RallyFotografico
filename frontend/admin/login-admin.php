@@ -20,7 +20,7 @@ $error = $_GET['error'] ?? '';
             <?= htmlspecialchars($error) ?>
         </div>
 
-        <form id="login-form" method="POST" action="procesar-login-admin.php" class="space-y-4">
+        <form id="login-form" method="POST" action="../../backend/admin/procesar-login-admin.php" class="space-y-4">
             <div>
                 <label for="email" class="block text-sm font-medium text-gray-700">Correo electrónico</label>
                 <input type="email" name="email" id="email" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-green-400" />

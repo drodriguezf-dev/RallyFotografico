@@ -1,21 +1,35 @@
 <?php
-require_once("../utils/variables.php");
-require_once("../utils/funciones.php");
-
 session_start();
+require_once("../../utils/variables.php");
+require_once("../../utils/funciones.php");
 
-if (!isset($_SESSION['admin_id']) || !isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != 1) {
-    header("Location: login.php");
+// Validar rol administrador
+if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != 1) {
+    header("Location: ../index.php");
     exit;
+}
+
+$conexion = conectarPDO($host, $user, $password, $bbdd);
+
+try {
+    $stmtUsuarios = $conexion->query("SELECT id, nombre, apellidos, email FROM usuarios");
+    $usuarios = $stmtUsuarios->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmtGestores = $conexion->query("SELECT id, nombre, apellidos, email FROM admins WHERE rol_id = 2");
+    $gestores = $stmtGestores->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $usuarios = $gestores = [];
 }
 ?>
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8" />
     <title>Gestionar Usuarios</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-100 min-h-screen p-6">
 
     <h1 class="text-3xl font-bold mb-6 text-center">Gestión de Usuarios</h1>
@@ -33,7 +47,23 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['rol_id']) || $_SESSION['r
                         <th class="p-2 text-center">Acciones</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    <?php foreach ($usuarios as $usuario): ?>
+                        <tr class="border-t">
+                            <td class="p-2"><?= htmlspecialchars($usuario['id']) ?></td>
+                            <td class="p-2"><?= htmlspecialchars($usuario['nombre'] . ' ' . $usuario['apellidos']) ?></td>
+                            <td class="p-2"><?= htmlspecialchars($usuario['email']) ?></td>
+                            <td class="p-2 flex justify-center space-x-2">
+                                <a href="modificar-usuario.php?id=<?= $usuario['id'] ?>" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded text-sm">
+                                    Modificar
+                                </a>
+                                <a href="#" data-url="../../backend/user/delete-user.php?id=<?= $usuario['id'] ?>" class="delete-button bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded text-sm">
+                                    Borrar
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
             </table>
         </div>
 
@@ -41,7 +71,7 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['rol_id']) || $_SESSION['r
         <div>
             <div class="flex justify-between items-center mb-2">
                 <h2 class="text-xl font-semibold">Gestores</h2>
-                <a href="../sessions/register-admin.php" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded text-sm">
+                <a href="register-admin.php" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-1 px-3 rounded text-sm">
                     + Crear Gestor
                 </a>
             </div>
@@ -54,7 +84,23 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['rol_id']) || $_SESSION['r
                         <th class="p-2 text-center">Acciones</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    <?php foreach ($gestores as $gestor): ?>
+                        <tr class="border-t">
+                            <td class="p-2"><?= htmlspecialchars($gestor['id']) ?></td>
+                            <td class="p-2"><?= htmlspecialchars($gestor['nombre'] . ' ' . $gestor['apellidos']) ?></td>
+                            <td class="p-2"><?= htmlspecialchars($gestor['email']) ?></td>
+                            <td class="p-2 flex justify-center space-x-2">
+                                <a href="modificar-gestor.php?id=<?= $gestor['id'] ?>" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded text-sm">
+                                    Modificar
+                                </a>
+                                <a href="#" data-url="../../backend/admin/delete-gestor.php?id=<?= $gestor['id'] ?>" class="delete-button bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded text-sm">
+                                    Borrar
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
             </table>
         </div>
     </div>
@@ -76,81 +122,41 @@ if (!isset($_SESSION['admin_id']) || !isset($_SESSION['rol_id']) || $_SESSION['r
     </div>
 
     <div class="mt-8 text-center">
-        <a href="index.php" class="bg-amber-300 hover:bg-amber-400 text-white font-semibold py-2 px-4 rounded transition">
+        <a href="../index.php" class="bg-amber-300 hover:bg-amber-400 text-white font-semibold py-2 px-4 rounded transition">
             Volver al inicio
         </a>
     </div>
 
     <script>
-        // Función para escapar texto HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('delete-modal');
+        const confirmDelete = document.getElementById('confirm-delete');
+        const cancelButton = document.getElementById('cancel-button');
 
-        // Renderizar filas en tabla
-        function renderTableRows(tableBody, data, tipo) {
-            tableBody.innerHTML = '';
-            data.forEach(item => {
-                const tr = document.createElement('tr');
-                tr.classList.add('border-t');
-
-                tr.innerHTML = `
-                    <td class="p-2">${item.id}</td>
-                    <td class="p-2">${escapeHtml(item.nombre)}</td>
-                    <td class="p-2">${escapeHtml(item.email)}</td>
-                    <td class="p-2 flex justify-center space-x-2">
-                        <a href="modificar-${tipo}.php?id=${item.id}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded text-sm">
-                            Modificar
-                        </a>
-                        <a href="#" data-url="../sessions/delete-${tipo}.php?id=${item.id}" class="delete-button bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded text-sm">
-                            Borrar
-                        </a>
-                    </td>
-                `;
-                tableBody.appendChild(tr);
-            });
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const usuariosTableBody = document.querySelector('#usuarios-table tbody');
-            const gestoresTableBody = document.querySelector('#gestores-table tbody');
-            const modal = document.getElementById('delete-modal');
-            const confirmDelete = document.getElementById('confirm-delete');
-            const cancelButton = document.getElementById('cancel-button');
-
-            // Cargar datos desde backend
-            fetch('usuarios-backend.php')
-                .then(response => response.json())
-                .then(data => {
-                    renderTableRows(usuariosTableBody, data.usuarios, 'usuario');
-                    renderTableRows(gestoresTableBody, data.gestores, 'gestor');
-
-                    // Añadir event listeners a botones borrar
-                    document.querySelectorAll('.delete-button').forEach(button => {
-                        button.addEventListener('click', function (e) {
-                            e.preventDefault();
-                            const deleteUrl = this.getAttribute('data-url');
-                            confirmDelete.setAttribute('href', deleteUrl);
-                            modal.classList.remove('hidden');
-                        });
-                    });
-                });
-
-            // Cancelar borrado
-            cancelButton.addEventListener('click', function () {
-                modal.classList.add('hidden');
-            });
-
-            // Cerrar modal si clic fuera
-            modal.addEventListener('click', function (e) {
-                if (e.target === modal) {
-                    modal.classList.add('hidden');
-                }
+        // Abrir modal al hacer clic en botón de borrar
+        document.querySelectorAll('.delete-button').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const url = this.getAttribute('data-url');
+                confirmDelete.setAttribute('href', url);
+                modal.classList.remove('hidden');
             });
         });
-    </script>
+
+        // Cancelar borrado
+        cancelButton.addEventListener('click', function () {
+            modal.classList.add('hidden');
+        });
+
+        // Cerrar modal si se hace clic fuera del contenido
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    });
+</script>
 
 </body>
+
 </html>

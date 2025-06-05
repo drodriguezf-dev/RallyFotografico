@@ -1,4 +1,37 @@
-<?php require_once("backend/votar_concurso.php"); ?>
+<?php
+require_once("../../utils/variables.php");
+require_once("../../utils/funciones.php");
+
+$conexion = conectarPDO($host, $user, $password, $bbdd);
+
+$mensaje_error = $_GET['error'] ?? '';
+$voto_exito = $_GET['voto'] === 'ok';
+
+if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+    header("Location: ../index.php");
+    exit;
+}
+
+$concurso_id = $_GET['id'];
+$stmt = $conexion->prepare("SELECT * FROM concursos WHERE id = :id");
+$stmt->execute(['id' => $concurso_id]);
+$concurso = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$concurso) {
+    $mensaje_error = "Concurso no encontrado.";
+}
+
+$limite_votos = $concurso['max_votos_por_ip'] ?? 0;
+$ip_usuario = $_SERVER['REMOTE_ADDR'];
+
+$stmt = $conexion->prepare("SELECT COUNT(*) FROM votos WHERE concurso_id = :cid AND ip_votante = :ip");
+$stmt->execute(['cid' => $concurso_id, 'ip' => $ip_usuario]);
+$votos_realizados = $stmt->fetchColumn();
+
+$stmt = $conexion->prepare("SELECT * FROM fotografias WHERE concurso_id = :cid AND estado = 'admitida'");
+$stmt->execute(['cid' => $concurso_id]);
+$fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -20,7 +53,7 @@
         <?php endif; ?>
 
         <h1 class="text-2xl font-bold mb-4 text-gray-800">Votar en: <?= htmlspecialchars($concurso['titulo'] ?? 'Concurso desconocido') ?></h1>
-        <a href="index.php" class="inline-block mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded transition">Volver al índice</a>
+        <a href="../index.php" class="inline-block mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded transition">Volver al índice</a>
 
         <p class="mb-2 text-gray-700">Puedes votar hasta <strong><?= $limite_votos ?></strong> fotos desde tu IP.</p>
         <p class="mb-6 text-gray-700">Has usado <strong><?= $votos_realizados ?></strong> de tus votos disponibles.</p>
@@ -33,8 +66,9 @@
                     <p class="text-sm text-gray-600 mb-2"><?= nl2br(htmlspecialchars($foto['descripcion'])) ?></p>
 
                     <?php if ($votos_realizados < $limite_votos): ?>
-                        <form method="POST">
+                        <form method="POST" action="../../backend/concurso/procesar-votar-concurso.php">
                             <input type="hidden" name="foto_id" value="<?= $foto['id'] ?>">
+                            <input type="hidden" name="concurso_id" value="<?= $concurso_id ?>">
                             <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition">Votar</button>
                         </form>
                     <?php else: ?>
@@ -46,7 +80,7 @@
     </div>
 
     <script>
-        <?php if (!empty($voto_registrado)): ?>
+        <?php if ($voto_exito): ?>
         window.addEventListener('DOMContentLoaded', () => {
             const noti = document.getElementById('notificacion-exito');
             noti.classList.remove('opacity-0');

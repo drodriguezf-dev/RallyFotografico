@@ -1,7 +1,7 @@
 <?php
 session_start();
-require_once("../utils/variables.php");
-require_once("../utils/funciones.php");
+require_once("../../utils/variables.php");
+require_once("../../utils/funciones.php");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conexion = conectarPDO($host, $user, $password, $bbdd);
@@ -18,17 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($admin && password_verify($password, $admin['password'])) {
             $_SESSION['admin_id'] = $admin['id'];
             $_SESSION['rol_id'] = $admin['rol_id'];
-            header("Location: ../public/index.php");
+            header("Location: ../../frontend/index.php");
             exit;
         } else {
-            header("Location: login-admin.php?error=Correo+o+contraseña+incorrectos.");
+            header("Location: ../../frontend/admin/login-admin.php?error=Correo+o+contraseña+incorrectos.");
             exit;
         }
     } else {
-        header("Location: login-admin.php?error=Rellena+todos+los+campos.");
+        header("Location: ../../frontend/admin/login-admin.php?error=Rellena+todos+los+campos.");
         exit;
     }
 } else {
-    header("Location: login-admin.php");
+    header("Location: ../../frontend/admin/login-admin.php");
     exit;
 }

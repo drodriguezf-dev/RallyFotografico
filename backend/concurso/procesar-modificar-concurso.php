@@ -1,15 +1,15 @@
 <?php
-require_once("../utils/variables.php");
-require_once("../utils/funciones.php");
+require_once("../../utils/variables.php");
+require_once("../../utils/funciones.php");
 session_start();
 
 if (!isset($_SESSION['admin_id']) || $_SESSION['rol_id'] == 3) {
-    header("Location: ../index.php");
+    header("Location: ../../frontend/index.php");
     exit;
 }
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header("Location: ../index.php");
+    header("Location: ../../frontend/index.php");
     exit;
 }
 
@@ -46,6 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mensaje = "Todos los campos son obligatorios.";
     }
 
-    header("Location: ../modificar-concurso.php?id=$concurso_id&mensaje=" . urlencode($mensaje));
+    header("Location: ../../frontend/concurso/modificar-concurso.php?id=$concurso_id&mensaje=" . urlencode($mensaje));
     exit;
 }

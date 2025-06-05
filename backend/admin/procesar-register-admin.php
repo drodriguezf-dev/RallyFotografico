@@ -1,18 +1,15 @@
 <?php
 session_start();
-require_once(".../utils/variables.php");
-require_once(".../utils/funciones.php");
+require_once("../../utils/variables.php");
+require_once("../../utils/funciones.php");
 
 // Validar que el usuario es administrador
 if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != 1) {
-    header("Location: .../frontend/index.php");
+    header("Location: ../../frontend/index.php");
     exit;
 }
 
 $conexion = conectarPDO($host, $user, $password, $bbdd);
-
-$error = '';
-$exito = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre = $_POST['nombre'] ?? '';
@@ -27,7 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute(['email' => $email]);
 
             if ($stmt->fetch()) {
-                $error = 'Ese correo ya está registrado.';
+                // Email ya registrado
+                header("Location: ../../frontend/admin/register-admin.php?mensaje=" . urlencode("El email ya está registrado.") . "&tipo=error");
+                exit;
             } else {
                 $passwordHash = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $conexion->prepare("INSERT INTO admins (nombre, apellidos, email, password, rol_id) VALUES (:nombre, :apellidos, :email, :password, :rol_id)");
@@ -38,13 +37,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'password' => $passwordHash,
                     'rol_id' => $rol_id
                 ]);
-                $exito = 'Gestor registrado correctamente.';
+                // Registro exitoso
+                header("Location: ../../frontend/admin/register-admin.php?mensaje=" . urlencode("Gestor registrado correctamente.") . "&tipo=success");
+                exit;
             }
         } catch (PDOException $e) {
-            $error = 'Error al registrar gestor.';
+            header("Location: ../../frontend/admin/register-admin.php?mensaje=" . urlencode("Error al registrar gestor.") . "&tipo=error");
+            exit;
         }
     } else {
-        $error = 'Rellena todos los campos.';
+        header("Location: ../../frontend/admin/register-admin.php?mensaje=" . urlencode("Rellena todos los campos.") . "&tipo=error");
+        exit;
     }
 }
 ?>
