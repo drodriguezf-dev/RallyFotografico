@@ -1,91 +1,88 @@
 <?php
 session_start();
-require_once("../utils/variables.php");
-require_once("../utils/funciones.php");
+require_once("../../utils/variables.php");
+require_once("../../utils/funciones.php");
 
-// Solo administradores pueden acceder
-if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] == 3) {
-    header("Location: index.php");
+// Verificación del rol
+if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] != 1) {
+    header("Location: ../../frontend/index.php");
     exit;
 }
 
-$mensaje = "";
+// Verifica si el formulario fue enviado por POST
+if ($_SERVER["REQUEST_METHOD"] !== "POST") {
+    header("Location: ../../frontend/concurso/crear-concurso.php?error=Acceso inválido");
+    exit;
+}
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $conexion = conectarPDO($host, $user, $password, $bbdd);
+try {
+    $pdo = conectarPDO($host, $user, $password, $bbdd);
 
-    $titulo = trim($_POST['titulo']);
-    $descripcion = trim($_POST['descripcion']);
-    $reglas = trim($_POST['reglas']);
+    // Validación básica
+    $campos_obligatorios = ['titulo', 'fecha_inicio', 'fecha_fin', 'fecha_inicio_votacion', 'fecha_fin_votacion'];
+    foreach ($campos_obligatorios as $campo) {
+        if (empty($_POST[$campo])) {
+            throw new Exception("Faltan campos obligatorios.");
+        }
+    }
+
+    // Recoger datos
+    $titulo = $_POST['titulo'];
+    $descripcion = $_POST['descripcion'] ?? '';
+    $reglas = $_POST['reglas'] ?? '';
     $fecha_inicio = $_POST['fecha_inicio'];
     $fecha_fin = $_POST['fecha_fin'];
     $fecha_inicio_votacion = $_POST['fecha_inicio_votacion'];
     $fecha_fin_votacion = $_POST['fecha_fin_votacion'];
-    $max_fotos = (int)$_POST['max_fotos_por_usuario'];
-    $max_votos = (int)$_POST['max_votos_por_ip'];
-    $max_participantes = (int)$_POST['max_participantes'];
-    $tamano_maximo = (int)$_POST['tamano_maximo_bytes'];
-    $formatos = trim($_POST['formatos_aceptados']);
+    $max_fotos = intval($_POST['max_fotos_por_usuario'] ?? 3);
+    $max_votos_ip = intval($_POST['max_votos_por_ip'] ?? 2);
+    $max_participantes = intval($_POST['max_participantes'] ?? 100);
+    $tamano_max_bytes = intval($_POST['tamano_maximo_bytes'] ?? 2097152);
+    $formatos = $_POST['formatos_aceptados'] ?? [];
 
-    $ahora = date('Y-m-d H:i:s');
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM concursos WHERE titulo = :titulo");
+    $stmt->execute([':titulo' => $titulo]);
+    $existe = $stmt->fetchColumn();
 
-    // Validación de fechas
-    if (
-        $fecha_inicio < $ahora ||
-        $fecha_fin < $fecha_inicio ||
-        $fecha_inicio_votacion < $fecha_inicio ||
-        $fecha_fin_votacion < $fecha_inicio_votacion ||
-        $fecha_fin_votacion > $fecha_fin
-    ) {
-        $mensaje = "Error: Las fechas introducidas no son válidas.";
-    } else {
-        try {
-            // Verificar si ya existe un concurso con el mismo título
-            $stmt_check = $conexion->prepare("SELECT COUNT(*) FROM concursos WHERE titulo = :titulo");
-            $stmt_check->execute(['titulo' => $titulo]);
-            $existe = $stmt_check->fetchColumn();
-
-            if ($existe > 0) {
-                $mensaje = "Error: Ya existe un concurso con ese título.";
-            } else {
-                $sql = "INSERT INTO concursos (
-                            titulo, descripcion, reglas, fecha_inicio, fecha_fin,
-                            max_fotos_por_usuario, max_votos_por_ip, max_participantes,
-                            tamano_maximo_bytes, formatos_aceptados,
-                            fecha_inicio_votacion, fecha_fin_votacion
-                        )
-                        VALUES (
-                            :titulo, :descripcion, :reglas, :fecha_inicio, :fecha_fin,
-                            :max_fotos, :max_votos, :max_participantes,
-                            :tamano_maximo, :formatos,
-                            :inicio_votacion, :fin_votacion
-                        )";
-
-                $stmt = $conexion->prepare($sql);
-                $stmt->execute([
-                    'titulo' => $titulo,
-                    'descripcion' => $descripcion,
-                    'reglas' => $reglas,
-                    'fecha_inicio' => $fecha_inicio,
-                    'fecha_fin' => $fecha_fin,
-                    'max_fotos' => $max_fotos,
-                    'max_votos' => $max_votos,
-                    'max_participantes' => $max_participantes,
-                    'tamano_maximo' => $tamano_maximo,
-                    'formatos' => $formatos,
-                    'inicio_votacion' => $fecha_inicio_votacion,
-                    'fin_votacion' => $fecha_fin_votacion
-                ]);
-
-                $mensaje = "Concurso creado correctamente.";
-            }
-        } catch (PDOException $e) {
-            $mensaje = "Error al crear el concurso: " . $e->getMessage();
-        }
+    if ($existe > 0) {
+        header("Location: ../../frontend/concurso/crear-concurso.php?error=" . urlencode("Ya existe un concurso con ese título."));
+        exit;
     }
-}
 
-// Devuelve JSON con el mensaje para el frontend
-header('Content-Type: application/json');
-echo json_encode(['mensaje' => $mensaje]);
-exit;
+    // Insertar concurso
+    $stmt = $pdo->prepare("
+        INSERT INTO concursos (
+            titulo, descripcion, reglas, fecha_inicio, fecha_fin,
+            fecha_inicio_votacion, fecha_fin_votacion,
+            max_fotos_por_usuario, max_votos_por_ip, max_participantes,
+            tamano_maximo_bytes, formatos_aceptados
+        ) VALUES (
+            :titulo, :descripcion, :reglas, :fecha_inicio, :fecha_fin,
+            :fecha_inicio_votacion, :fecha_fin_votacion,
+            :max_fotos, :max_votos_ip, :max_participantes,
+            :tamano_maximo_bytes, :formatos_aceptados
+        )
+    ");
+
+    $stmt->execute([
+        ':titulo' => $titulo,
+        ':descripcion' => $descripcion,
+        ':reglas' => $reglas,
+        ':fecha_inicio' => $fecha_inicio,
+        ':fecha_fin' => $fecha_fin,
+        ':fecha_inicio_votacion' => $fecha_inicio_votacion,
+        ':fecha_fin_votacion' => $fecha_fin_votacion,
+        ':max_fotos' => $max_fotos,
+        ':max_votos_ip' => $max_votos_ip,
+        ':max_participantes' => $max_participantes,
+        ':tamano_maximo_bytes' => $tamano_max_bytes,
+        ':formatos_aceptados' => implode(',', $formatos)
+    ]);
+
+    // Redirigir con éxito
+    header("Location: ../../frontend/concurso/crear-concurso.php?exito=Concurso creado correctamente");
+    exit;
+} catch (Exception $e) {
+    header("Location: ../../frontend/concurso/crear-concurso.php?error=" . urlencode("Error: " . $e->getMessage()));
+    exit;
+}

@@ -5,7 +5,7 @@ require_once("../../utils/funciones.php");
 $conexion = conectarPDO($host, $user, $password, $bbdd);
 
 $mensaje_error = $_GET['error'] ?? '';
-$voto_exito = $_GET['voto'] === 'ok';
+$voto_exito = isset($_GET['voto']) && $_GET['voto'] === 'ok';
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header("Location: ../index.php");
@@ -31,14 +31,21 @@ $votos_realizados = $stmt->fetchColumn();
 $stmt = $conexion->prepare("SELECT * FROM fotografias WHERE concurso_id = :cid AND estado = 'admitida'");
 $stmt->execute(['cid' => $concurso_id]);
 $fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Obtener IDs de fotos votadas por esta IP en este concurso
+$stmt = $conexion->prepare("SELECT fotografia_id FROM votos WHERE concurso_id = :cid AND ip_votante = :ip");
+$stmt->execute(['cid' => $concurso_id, 'ip' => $ip_usuario]);
+$fotos_votadas_ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
 ?>
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>Votar en Concurso</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-100 min-h-screen px-4 py-8">
     <div id="notificacion-exito" class="fixed top-0 left-1/2 transform -translate-x-1/2 mt-4 bg-green-100 text-green-800 px-6 py-3 rounded shadow-lg flex items-center gap-2 opacity-0 transition-all duration-500 z-50">
         <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -65,8 +72,18 @@ $fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <h3 class="font-semibold text-lg"><?= htmlspecialchars($foto['titulo']) ?></h3>
                     <p class="text-sm text-gray-600 mb-2"><?= nl2br(htmlspecialchars($foto['descripcion'])) ?></p>
 
-                    <?php if ($votos_realizados < $limite_votos): ?>
-                        <form method="POST" action="../../backend/concurso/procesar-votar-concurso.php">
+                    <?php
+                    $ya_votada = in_array($foto['id'], $fotos_votadas_ids);
+                    ?>
+
+                    <?php if ($ya_votada): ?>
+                        <form method="POST" action="../../backend/concurso/procesar-eliminar-voto.php" class="flex justify-end">
+                            <input type="hidden" name="foto_id" value="<?= $foto['id'] ?>">
+                            <input type="hidden" name="concurso_id" value="<?= $concurso_id ?>">
+                            <button type="submit" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition text-sm">Eliminar voto</button>
+                        </form>
+                    <?php elseif ($votos_realizados < $limite_votos): ?>
+                        <form method="POST" action="../../backend/concurso/procesar-votar-concurso.php" class="flex justify-end">
                             <input type="hidden" name="foto_id" value="<?= $foto['id'] ?>">
                             <input type="hidden" name="concurso_id" value="<?= $concurso_id ?>">
                             <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition">Votar</button>
@@ -81,16 +98,17 @@ $fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <script>
         <?php if ($voto_exito): ?>
-        window.addEventListener('DOMContentLoaded', () => {
-            const noti = document.getElementById('notificacion-exito');
-            noti.classList.remove('opacity-0');
-            noti.classList.add('opacity-100');
-            setTimeout(() => {
-                noti.classList.remove('opacity-100');
-                noti.classList.add('opacity-0');
-            }, 3000);
-        });
+            window.addEventListener('DOMContentLoaded', () => {
+                const noti = document.getElementById('notificacion-exito');
+                noti.classList.remove('opacity-0');
+                noti.classList.add('opacity-100');
+                setTimeout(() => {
+                    noti.classList.remove('opacity-100');
+                    noti.classList.add('opacity-0');
+                }, 3000);
+            });
         <?php endif; ?>
     </script>
 </body>
+
 </html>

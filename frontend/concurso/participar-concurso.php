@@ -46,75 +46,13 @@ $stmt->execute([
 ]);
 $fotos_subidas = $stmt->fetchColumn();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['foto'])) {
-    if ($fotos_subidas >= $concurso['max_fotos_por_usuario']) {
-        $mensaje_error = "Ya has subido el número máximo de fotos permitido para este concurso.";
-    } else {
-        $foto = $_FILES['foto'];
-
-        // Validaciones
-        $formatos_aceptados = explode(",", $concurso['formatos_aceptados']);
-        if (!in_array($foto['type'], $formatos_aceptados)) {
-            $mensaje_error = "Formato de imagen no aceptado.";
-        } elseif ($foto['size'] > $concurso['tamano_maximo_bytes']) {
-            $mensaje_error = "Tamaño de imagen excedido. Máximo permitido: " . ($concurso['tamano_maximo_bytes'] / 1048576) . " MB";
-        } else {
-            $titulo = trim($_POST['titulo'] ?? '');
-            $descripcion = trim($_POST['descripcion'] ?? '');
-
-            if (empty($titulo)) {
-                $mensaje_error = "El título es obligatorio.";
-            } else {
-                // Leer contenido del archivo e ir preparando datos
-                $contenido_binario = file_get_contents($foto['tmp_name']);
-                $imagen_base64 = base64_encode($contenido_binario);
-                $mime_type = $foto['type'];
-
-                // Insertar en la base de datos
-                try {
-                    $stmt = $conexion->prepare("
-                        INSERT INTO fotografias (usuario_id, concurso_id, titulo, descripcion, imagen_base64, mime_type)
-                        VALUES (:uid, :cid, :titulo, :descripcion, :imagen_base64, :mime_type)
-                    ");
-                    $stmt->execute([
-                        'uid' => $_SESSION['usuario_id'],
-                        'cid' => $concurso_id,
-                        'titulo' => $titulo,
-                        'descripcion' => $descripcion,
-                        'imagen_base64' => $imagen_base64,
-                        'mime_type' => $mime_type
-                    ]);
-
-                    $foto_subida_correctamente = true;
-                } catch (PDOException $e) {
-                    $mensaje_error = "Error al guardar en la base de datos: " . htmlspecialchars($e->getMessage());
-                }
-            }
-        }
-    }
-}
-// Eliminar foto si se envía una solicitud de eliminación
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_id'])) {
-    $foto_id = (int) $_POST['eliminar_id'];
-
-    // Verifica que la foto pertenezca al usuario actual
-    $stmt = $conexion->prepare("SELECT id FROM fotografias WHERE id = :fid AND usuario_id = :uid AND concurso_id = :cid");
-    $stmt->execute([
-        'fid' => $foto_id,
-        'uid' => $_SESSION['usuario_id'],
-        'cid' => $concurso_id
-    ]);
-
-    if ($stmt->fetch()) {
-        $stmt = $conexion->prepare("DELETE FROM fotografias WHERE id = :fid");
-        $stmt->execute(['fid' => $foto_id]);
-        // Recarga la página para reflejar el cambio
-        header("Location: participar-concurso.php?id=" . $concurso_id);
-        exit;
-    } else {
-        $mensaje_error = "No tienes permiso para eliminar esta fotografía.";
-    }
-}
+// Obtener las fotos subidas por el usuario en este concurso
+$stmt = $conexion->prepare("SELECT id, titulo, descripcion, imagen_base64, mime_type, fecha_subida, estado FROM fotografias WHERE usuario_id = :uid AND concurso_id = :cid ORDER BY fecha_subida DESC");
+$stmt->execute([
+    'uid' => $_SESSION['usuario_id'],
+    'cid' => $concurso_id
+]);
+$mis_fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -126,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_id'])) {
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gray-100 min-h-screen flex items-center justify-center px-4">
+<body class="bg-gradient-to-br from-gray-100 to-gray-200 min-h-screen">
     <?php if ($foto_subida_correctamente): ?>
         <div id="toast-exito" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded shadow-lg z-50 transition-opacity duration-500">
             Imagen subida con éxito.
@@ -141,61 +79,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_id'])) {
             }, 3000);
         </script>
     <?php endif; ?>
-    <div class="bg-white p-8 rounded shadow-md w-full max-w-2xl">
-        <h1 class="text-2xl font-bold mb-4 text-gray-800">Participar en: <?= htmlspecialchars($concurso['titulo']) ?></h1>
+    <div class="flex flex-col md:flex-row h-screen">
 
-        <p class="mb-4 text-gray-700"><?= nl2br(htmlspecialchars($concurso['descripcion'])) ?></p>
+        <!-- COLUMNA IZQUIERDA: Descripción y reglas -->
+        <div class="md:basis-2/5 p-8 pb-20 overflow-y-auto border-r border-gray-300 bg-white">
+            <h1 class="text-3xl font-bold mb-6 text-gray-800">Participar en: <?= htmlspecialchars($concurso['titulo']) ?></h1>
 
-        <div class="mb-6">
-            <h2 class="font-semibold text-gray-800 mb-2">Reglas del concurso:</h2>
-            <div class="bg-gray-50 p-3 border rounded text-gray-700 whitespace-pre-wrap"><?= htmlspecialchars($concurso['reglas']) ?></div>
-        </div>
+            <p class="mb-8 text-gray-700 leading-relaxed"><?= nl2br(htmlspecialchars($concurso['descripcion'])) ?></p>
 
-        <form method="POST" enctype="multipart/form-data" class="space-y-4">
-            <?php if (!empty($mensaje_error)): ?>
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                    <?= htmlspecialchars($mensaje_error) ?>
+            <h2 class="font-semibold text-gray-800 mb-3 mt-8 text-xl">Reglas del concurso:</h2>
+            <div class="bg-gray-50 p-4 border rounded text-gray-700 whitespace-pre-wrap mb-8"><?= htmlspecialchars($concurso['reglas']) ?></div>
+
+            <div class="text-sm text-gray-600 space-y-3 mb-12">
+                <p><strong>Máximo permitido por usuario:</strong> <?= $concurso['max_fotos_por_usuario'] ?> fotos</p>
+                <p><strong>Formatos aceptados:</strong> <?= $concurso['formatos_aceptados'] ?></p>
+                <p><strong>Tamaño máximo:</strong> <?= round($concurso['tamano_maximo_bytes'] / 1048576, 2) ?> MB</p>
+            </div>
+
+            <?php if (isset($_GET['error'])): ?>
+                <?php
+                $mensajes_error = [
+                    'concurso_no_encontrado' => 'El concurso no existe.',
+                    'fuera_de_fecha' => 'El concurso no está disponible actualmente.',
+                    'no_autorizado' => 'No estás autorizado para eliminar esa foto.',
+                    'limite_excedido' => 'Has alcanzado el límite de fotos permitidas.',
+                    'formato_no_valido' => 'El formato de la imagen no es válido.',
+                    'imagen_grande' => 'La imagen supera el tamaño máximo permitido.',
+                    'titulo_vacio' => 'El título no puede estar vacío.',
+                    'bd' => 'Error inesperado al guardar la imagen.',
+                ];
+                $codigo = $_GET['error'];
+                $mensaje = $mensajes_error[$codigo] ?? 'Error desconocido.';
+                ?>
+                <div class="mb-6 p-4 bg-red-100 text-red-800 border border-red-300 rounded">
+                    <?= htmlspecialchars($mensaje) ?>
                 </div>
             <?php endif; ?>
 
-            <label class="block">
-                <span class="text-gray-700">Selecciona una imagen:</span>
-                <input type="file" name="foto" accept="<?= htmlspecialchars($concurso['formatos_aceptados']) ?>" required class="block w-full mt-1 border border-gray-300 p-2 rounded">
-            </label>
+            <!-- Botón de volver -->
+            <div class="text-left mt-10">
+                <a href="../index.php" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded transition">
+                    Volver al inicio
+                </a>
+            </div>
+        </div>
 
-            <label class="block">
-                <span class="text-gray-700">Título de la foto:</span>
-                <input type="text" name="titulo" required class="block w-full mt-1 border border-gray-300 p-2 rounded" placeholder="Escribe un título para tu foto">
-            </label>
+        <!-- COLUMNA DERECHA: Formulario y fotos -->
+        <div class="md:basis-3/5 p-8 overflow-y-auto">
+            <!-- Formulario -->
+            <form method="POST" action="../../backend/concurso/procesar-participar-concurso.php" enctype="multipart/form-data" class="space-y-4 mb-10">
+                <?php if (!empty($mensaje_error)): ?>
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        <?= htmlspecialchars($mensaje_error) ?>
+                    </div>
+                <?php endif; ?>
 
-            <label class="block">
-                <span class="text-gray-700">Descripción de la foto:</span>
-                <textarea name="descripcion" rows="3" class="block w-full mt-1 border border-gray-300 p-2 rounded resize-none" placeholder="Escribe una breve descripción de tu foto"></textarea>
-            </label>
+                <label class="block">
+                    <span class="text-gray-700 font-medium">Selecciona una imagen:</span>
+                    <input type="file" name="foto" accept="<?= htmlspecialchars($concurso['formatos_aceptados']) ?>" required class="block w-full mt-1 border border-gray-300 p-2 rounded">
+                </label>
 
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Subir fotografía</button>
-        </form>
+                <label class="block">
+                    <span class="text-gray-700 font-medium">Título de la foto:</span>
+                    <input type="text" name="titulo" required class="block w-full mt-1 border border-gray-300 p-2 rounded">
+                </label>
 
-        <p class="text-sm text-gray-600 mt-4">Máximo permitido por usuario: <?= $concurso['max_fotos_por_usuario'] ?> fotos</p>
-        <p class="text-sm text-gray-600">Formatos aceptados: <?= $concurso['formatos_aceptados'] ?></p>
-        <p class="text-sm text-gray-600">Tamaño máximo: <?= round($concurso['tamano_maximo_bytes'] / 1048576, 2) ?> MB</p>
-        <?php
-        // Obtener las fotos subidas por el usuario en este concurso
-        $stmt = $conexion->prepare("SELECT id, titulo, descripcion, imagen_base64, mime_type, fecha_subida FROM fotografias WHERE usuario_id = :uid AND concurso_id = :cid ORDER BY fecha_subida DESC");
-        $stmt->execute([
-            'uid' => $_SESSION['usuario_id'],
-            'cid' => $concurso_id
-        ]);
-        $mis_fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        ?>
+                <label class="block">
+                    <span class="text-gray-700 font-medium">Descripción de la foto:</span>
+                    <textarea name="descripcion" rows="3" class="block w-full mt-1 border border-gray-300 p-2 rounded resize-none"></textarea>
+                </label>
 
-        <div class="mt-10">
+                <input type="hidden" name="concurso_id" value="<?= htmlspecialchars($concurso['id']) ?>">
+
+                <?php if ($fotos_subidas >= $concurso['max_fotos_por_usuario']): ?>
+                    <p class="text-red-600 font-semibold">Límite de fotos alcanzado. No puedes subir más imágenes.</p>
+                <?php else: ?>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">Subir fotografía</button>
+                <?php endif; ?>
+            </form>
+
+            <!-- Galería de fotos -->
             <h2 class="text-xl font-semibold text-gray-800 mb-4">Mis fotos</h2>
-
             <?php if (count($mis_fotos) === 0): ?>
                 <p class="text-gray-600">Aún no has subido ninguna fotografía a este concurso.</p>
             <?php else: ?>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <?php foreach ($mis_fotos as $foto): ?>
                         <div class="relative border rounded overflow-hidden shadow hover:shadow-md transition bg-white">
                             <!-- Botón de eliminar -->
@@ -206,13 +174,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_id'])) {
                                 &minus;
                             </button>
 
-                            <!-- Imagen -->
-                            <img src="data:<?= htmlspecialchars($foto['mime_type']) ?>;base64,<?= htmlspecialchars($foto['imagen_base64']) ?>"
-                                alt="<?= htmlspecialchars($foto['titulo']) ?>"
-                                class="w-full h-48 object-cover">
+                            <!-- Contenedor de imagen con estado -->
+                            <div class="relative">
+                                <img src="data:<?= htmlspecialchars($foto['mime_type']) ?>;base64,<?= htmlspecialchars($foto['imagen_base64']) ?>"
+                                    alt="<?= htmlspecialchars($foto['titulo']) ?>"
+                                    class="w-full h-48 object-cover">
+
+                                <?php if (!empty($foto['estado'])): ?>
+                                    <span class="<?php
+                                                    switch ($foto['estado']) {
+                                                        case 'aceptada':
+                                                            echo 'text-green-700 bg-green-100';
+                                                            break;
+                                                        case 'rechazada':
+                                                            echo 'text-red-700 bg-red-100';
+                                                            break;
+                                                        case 'pendiente':
+                                                        default:
+                                                            echo 'text-yellow-700 bg-yellow-100';
+                                                            break;
+                                                    }
+                                                    ?> text-xs font-medium px-2 py-1 rounded absolute bottom-2 left-2">
+                                        <?= ucfirst(htmlspecialchars($foto['estado'])) ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
 
                             <div class="p-3">
-                                <h3 class="text-gray-800 font-semibold text-base"><?= htmlspecialchars($foto['titulo']) ?></h3>
+                                <h3 class="text-gray-800 font-semibold text-base mb-1"><?= htmlspecialchars($foto['titulo']) ?></h3>
                                 <p class="text-gray-600 text-sm mb-2"><?= nl2br(htmlspecialchars($foto['descripcion'])) ?></p>
                                 <p class="text-gray-500 text-xs">Subida el <?= date('d/m/Y H:i', strtotime($foto['fecha_subida'])) ?></p>
                             </div>
@@ -220,12 +209,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_id'])) {
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
-        </div>
-
-        <div class="text-center mt-6">
-            <a href="../index.php" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded transition">
-                Volver al inicio
-            </a>
         </div>
     </div>
     <!-- Modal de confirmación personalizado -->
@@ -235,8 +218,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_id'])) {
             <p class="text-gray-600 mb-6">Esta acción eliminará la fotografía de forma permanente.</p>
             <div class="flex justify-end gap-4">
                 <button id="cancel-button" class="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800 transition">Cancelar</button>
-                <form id="delete-form" method="POST">
+                <form id="delete-form" method="POST" action="../../backend/concurso/procesar-participar-concurso.php">
                     <input type="hidden" name="eliminar_id" id="foto-a-eliminar">
+                    <input type="hidden" name="concurso_id" value="<?= htmlspecialchars($concurso_id) ?>">
                     <button type="submit" class="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white transition">Eliminar</button>
                 </form>
             </div>
@@ -244,33 +228,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_id'])) {
     </div>
 </body>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const modal = document.getElementById('delete-modal');
-    const confirmForm = document.getElementById('delete-form');
-    const inputFotoId = document.getElementById('foto-a-eliminar');
-    const cancelButton = document.getElementById('cancel-button');
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('delete-modal');
+        const confirmForm = document.getElementById('delete-form');
+        const inputFotoId = document.getElementById('foto-a-eliminar');
+        const cancelButton = document.getElementById('cancel-button');
 
-    // Abrir el modal y cargar el ID de la foto
-    document.querySelectorAll('.delete-button').forEach(button => {
-        button.addEventListener('click', function () {
-            const fotoId = this.getAttribute('data-id');
-            inputFotoId.value = fotoId;
-            modal.classList.remove('hidden');
+        // Abrir el modal y cargar el ID de la foto
+        document.querySelectorAll('.delete-button').forEach(button => {
+            button.addEventListener('click', function() {
+                const fotoId = this.getAttribute('data-id');
+                inputFotoId.value = fotoId;
+                modal.classList.remove('hidden');
+            });
+        });
+
+        // Cancelar
+        cancelButton.addEventListener('click', function() {
+            modal.classList.add('hidden');
+        });
+
+        // Cerrar si hacen clic fuera del modal
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
         });
     });
-
-    // Cancelar
-    cancelButton.addEventListener('click', function () {
-        modal.classList.add('hidden');
-    });
-
-    // Cerrar si hacen clic fuera del modal
-    modal.addEventListener('click', function (e) {
-        if (e.target === modal) {
-            modal.classList.add('hidden');
-        }
-    });
-});
 </script>
 
 

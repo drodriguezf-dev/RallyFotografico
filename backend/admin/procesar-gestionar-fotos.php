@@ -1,11 +1,11 @@
 <?php
-require_once("../utils/variables.php");
-require_once("../utils/funciones.php");
+require_once("../../utils/variables.php");
+require_once("../../utils/funciones.php");
 
 session_start();
 
 if (!isset($_SESSION['admin_id']) || !isset($_SESSION['rol_id']) || $_SESSION['rol_id'] == 3) {
-    header("Location: login.php");
+    header("Location: ../../frontend/index.php");
     exit;
 }
 
@@ -32,19 +32,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($concurso_id && is_numeric($concurso_id) && isset($_POST['eliminar_concurso'])) {
         $stmt = $conexion->prepare("SELECT fecha_fin FROM concursos WHERE id = :id");
         $stmt->execute(['id' => $concurso_id]);
-        $fecha_fin = $stmt->fetchColumn();
 
-        if ($fecha_fin && strtotime($fecha_fin) < time()) {
-            $stmt = $conexion->prepare("DELETE FROM fotografias WHERE concurso_id = :id");
-            $stmt->execute(['id' => $concurso_id]);
+        $stmt = $conexion->prepare("DELETE FROM fotografias WHERE concurso_id = :id");
+        $stmt->execute(['id' => $concurso_id]);
 
-            $stmt = $conexion->prepare("DELETE FROM concursos WHERE id = :id");
-            $stmt->execute(['id' => $concurso_id]);
-        }
+        $stmt = $conexion->prepare("DELETE FROM concursos WHERE id = :id");
+        $stmt->execute(['id' => $concurso_id]);
     }
 
     // Volver al panel tras la acción
-    header("Location: admin-fotos.php");
+    header("Location: ../../frontend/admin/gestionar-fotos.php");
     exit;
 }
-?>

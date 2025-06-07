@@ -10,9 +10,20 @@ $conexion = conectarPDO($host, $user, $password, $bbdd);
 $fecha_actual = date('Y-m-d H:i:s');
 
 // Consulta concursos activos
-$sql = "SELECT id, titulo, descripcion FROM concursos WHERE fecha_inicio <= :fecha AND fecha_fin >= :fecha ORDER BY fecha_inicio DESC";
+$sql = "SELECT 
+    id, 
+    titulo, 
+    descripcion, 
+    fecha_inicio, 
+    fecha_fin, 
+    fecha_inicio_votacion, 
+    fecha_fin_votacion
+FROM 
+    concursos
+ORDER BY 
+    fecha_inicio DESC";
 $stmt = $conexion->prepare($sql);
-$stmt->execute(['fecha' => $fecha_actual]);
+$stmt->execute(); // ← Aquí ya está correcto
 $concursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
@@ -60,10 +71,10 @@ $concursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="px-4 py-2 text-sm text-gray-700 font-semibold border-b bg-gray-100">Opciones de cuenta</div>
                             <!-- Opciones para usuarios -->
                             <?php if ($_SESSION['rol_id'] == 3): ?>
-                                <a href="POR HACER" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded transition">
+                                <a href="user/ver-fotos.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded transition">
                                     Ver mis fotos
                                 </a>
-                                <a href="POR HACER" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded transition">
+                                <a href="user/modificar-usuario.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded transition">
                                     Cambiar mis datos
                                 </a>
                             <?php elseif ($_SESSION['rol_id'] == 2): ?>
@@ -73,7 +84,7 @@ $concursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <a href="concurso/crear-concurso.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded transition">
                                     Crear concurso
                                 </a>
-                                <a href="POR HACER" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded transition">
+                                <a href="admin/modificar-gestor.php" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded transition">
                                     Cambiar mis datos
                                 </a>
                             <?php elseif ($_SESSION['rol_id'] == 1): ?>
@@ -104,32 +115,63 @@ $concursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <p class="text-center text-gray-600">No hay concursos activos en este momento.</p>
             <?php else: ?>
                 <div class="grid md:grid-cols-2 gap-6">
-                    <?php foreach ($concursos as $concurso): ?>
-                        <div class="bg-white p-6 rounded shadow hover:shadow-lg transition">
-                            <h2 class="text-xl font-bold mb-2 text-gray-900"><?= htmlspecialchars($concurso['titulo']) ?></h2>
-                            <p class="text-gray-700"><?= nl2br(htmlspecialchars($concurso['descripcion'])) ?></p>
-                            <div class="mt-4 text-center flex justify-center space-x-4">
-                                <?php if (!isset($_SESSION['rol_id']) && !isset($_SESSION['usuario_id'])): ?>
-                                    <!-- Botón para usuarios anónimos -->
-                                    <a href="concurso/votar-concurso.php?id=<?= $concurso['id'] ?>" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded transition">
-                                        Votar
-                                    </a>
-                                <?php elseif (isset($_SESSION['rol_id']) && $_SESSION['rol_id'] == 3): ?>
-                                    <!-- Botón para usuarios con rol_id == 3 -->
-                                    <a href="concurso/participar-concurso.php?id=<?= $concurso['id'] ?>" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition">
-                                        Participar
-                                    </a>
-                                <?php endif; ?>
+                <?php foreach ($concursos as $concurso): ?>
+    <?php
+        $fecha_actual_dt = new DateTime($fecha_actual);
+        $fecha_fin_participacion = new DateTime($concurso['fecha_fin']);
+        $fecha_inicio_votacion = new DateTime($concurso['fecha_inicio_votacion']);
+        $fecha_fin_votacion = new DateTime($concurso['fecha_fin_votacion']);
+        $fecha_fin_votacion_mas_3 = clone $fecha_fin_votacion;
+        $fecha_fin_votacion_mas_3->modify('+3 days');
 
-                                <?php if (isset($_SESSION['rol_id']) && ($_SESSION['rol_id'] == 1 || $_SESSION['rol_id'] == 2)): ?>
-                                    <!-- Botón para administradores o gestores -->
-                                    <a href="concurso/modificar-concurso.php?id=<?= $concurso['id'] ?>" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded transition">
-                                        Modificar
-                                    </a>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+        $mostrar_concurso = false;
+
+        if (isset($_SESSION['rol_id']) && $_SESSION['rol_id'] == 3) {
+            // Participantes: solo mientras está abierta la participación
+            $mostrar_concurso = $fecha_actual_dt <= $fecha_fin_participacion;
+        } elseif (!isset($_SESSION['rol_id']) && !isset($_SESSION['usuario_id'])) {
+            // Anónimos: hasta 3 días después del fin de votación
+            $mostrar_concurso = $fecha_actual_dt <= $fecha_fin_votacion_mas_3;
+        } else {
+            // Admins o gestores: siempre
+            $mostrar_concurso = true;
+        }
+
+        if (!$mostrar_concurso) continue;
+    ?>
+
+    <div class="bg-white p-6 rounded shadow hover:shadow-lg transition">
+        <h2 class="text-xl font-bold mb-2 text-gray-900"><?= htmlspecialchars($concurso['titulo']) ?></h2>
+        <p class="text-gray-700"><?= nl2br(htmlspecialchars($concurso['descripcion'])) ?></p>
+
+        <div class="mt-4 text-center flex justify-center space-x-4">
+            <?php if (!isset($_SESSION['rol_id']) && !isset($_SESSION['usuario_id'])): ?>
+                <?php if ($fecha_actual_dt <= $fecha_fin_votacion): ?>
+                    <a href="concurso/votar-concurso.php?id=<?= $concurso['id'] ?>" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded transition">
+                        Votar
+                    </a>
+                <?php endif; ?>
+            <?php elseif (isset($_SESSION['rol_id']) && $_SESSION['rol_id'] == 3): ?>
+                <?php if ($fecha_actual_dt <= $fecha_fin_participacion): ?>
+                    <a href="concurso/participar-concurso.php?id=<?= $concurso['id'] ?>" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition">
+                        Participar
+                    </a>
+                <?php endif; ?>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['rol_id']) && ($_SESSION['rol_id'] == 1 || $_SESSION['rol_id'] == 2)): ?>
+                <a href="concurso/modificar-concurso.php?id=<?= $concurso['id'] ?>" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded transition">
+                    Modificar
+                </a>
+            <?php endif; ?>
+
+            <!-- Todos ven el botón de ranking si están dentro del rango de visibilidad -->
+            <a href="concurso/ver-ranking.php?id=<?= $concurso['id'] ?>" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded transition">
+                Ranking
+            </a>
+        </div>
+    </div>
+<?php endforeach; ?>
                 </div>
             <?php endif; ?>
         </main>
