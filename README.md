@@ -41,8 +41,10 @@ $host = “localhost”;
 $user = “root”;
 $password = “”';
 $bbdd = “rallys”;
+
 Si cambias el nombre de la base de datos o tu contraseña de MySQL, asegúrate de actualizarlo aquí.
-5. Visualizar la web
+
+### 5. Visualizar la web
 Aunque puedes usar extensiones como PHP Server en VS Code, en esta guía utilizaremos XAMPP.
 Copia la carpeta del proyecto (RallyFotografico) dentro de:
 C:\xampp\htdocs
@@ -107,4 +109,10 @@ Desde la sección de gestión de usuarios.
 
 ## Autor
 **David Rodríguez Ferrete**
+
+## Licencia
+Este proyecto está bajo la licencia MIT.
+Puedes usar, copiar, modificar y distribuir el código libremente, siempre mencionando al autor original.
+
+No se ofrece ninguna garantía.
 
