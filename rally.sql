@@ -21,6 +21,8 @@ CREATE TABLE admins (
     rol_id INT NOT NULL,
     FOREIGN KEY (rol_id) REFERENCES roles(id)
 );
+INSERT INTO admins (nombre, apellidos, email, password, rol_id)
+VALUES ('admin', 'ejemplo', 'admin@email.com', '$2y$10$p/0k8pxoBSdS5C12knnZLeKVkmvwusZpubNnCoc9Nuod/jUMY4okq', 1);
 
 CREATE TABLE usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
