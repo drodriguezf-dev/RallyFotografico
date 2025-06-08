@@ -21,8 +21,8 @@ Inicia Apache y MySQL desde el panel de control de XAMPP.
 Accede a phpMyAdmin desde tu navegador:
 http://localhost/phpmyadmin
 
-Crea una nueva base de datos, por ejemplo:
-rally_fotografico
+Crea una nueva base de datos llamada:
+rallys
 
 Importa el archivo SQL incluido en el proyecto:
 
