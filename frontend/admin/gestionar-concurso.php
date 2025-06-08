@@ -57,6 +57,11 @@ $fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <?php foreach ($fotos as $foto): ?>
+                <?php
+                $stmt_votos = $conexion->prepare("SELECT COUNT(*) FROM votos WHERE fotografia_id = :fid");
+                $stmt_votos->execute(['fid' => $foto['id']]);
+                $num_votos = $stmt_votos->fetchColumn();
+                ?>
                 <div class="border rounded p-3 bg-gray-50 shadow-sm flex flex-col h-[24rem]">
                     <div class="flex-shrink-0 h-48 w-full mb-2 overflow-hidden flex items-center justify-center bg-white rounded">
                         <img src="data:<?= htmlspecialchars($foto['mime_type']) ?>;base64,<?= $foto['imagen_base64'] ?>"
@@ -76,6 +81,7 @@ $fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             ?>
                             <li><strong>Peso:</strong> <?= number_format($peso_bytes / 1024, 2) ?> KB</li>
                             <li><strong>Formato:</strong> <?= htmlspecialchars($foto['mime_type']) ?></li>
+                            <li><strong>Votos:</strong> <?= $num_votos ?></li>
                         </ul>
 
                         <div class="flex flex-wrap gap-2 justify-end">

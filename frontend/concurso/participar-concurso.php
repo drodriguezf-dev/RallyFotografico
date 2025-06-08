@@ -91,6 +91,8 @@ $mis_fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="bg-gray-50 p-4 border rounded text-gray-700 whitespace-pre-wrap mb-8"><?= htmlspecialchars($concurso['reglas']) ?></div>
 
             <div class="text-sm text-gray-600 space-y-3 mb-12">
+                <p><strong>Fecha de inicio:</strong> <?= $concurso['fecha_inicio'] ?></p>
+                <p><strong>Fecha fin:</strong> <?= $concurso['fecha_fin'] ?></p>
                 <p><strong>Máximo permitido por usuario:</strong> <?= $concurso['max_fotos_por_usuario'] ?> fotos</p>
                 <p><strong>Formatos aceptados:</strong> <?= $concurso['formatos_aceptados'] ?></p>
                 <p><strong>Tamaño máximo:</strong> <?= round($concurso['tamano_maximo_bytes'] / 1048576, 2) ?> MB</p>
@@ -99,6 +101,7 @@ $mis_fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php if (isset($_GET['error'])): ?>
                 <?php
                 $mensajes_error = [
+                    'participantes_completos' => 'Ya se ha alcanzado el número máximo de participantes.',
                     'concurso_no_encontrado' => 'El concurso no existe.',
                     'fuera_de_fecha' => 'El concurso no está disponible actualmente.',
                     'no_autorizado' => 'No estás autorizado para eliminar esa foto.',

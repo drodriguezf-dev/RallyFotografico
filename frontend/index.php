@@ -179,9 +179,11 @@ $concursos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?php endif; ?>
 
                                 <!-- Todos ven el botón de ranking si están dentro del rango de visibilidad -->
+                                <?php if ($fecha_actual_dt >= $fecha_inicio_votacion): ?>
                                 <a href="concurso/ver-ranking.php?id=<?= $concurso['id'] ?>" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded transition">
                                     Ranking
                                 </a>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>

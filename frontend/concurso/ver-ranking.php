@@ -19,7 +19,7 @@ $stmt = $conexion->prepare("
     SELECT f.titulo, f.descripcion, f.imagen_base64, f.mime_type, COUNT(v.id) AS votos
     FROM fotografias f
     LEFT JOIN votos v ON f.id = v.fotografia_id
-    WHERE f.concurso_id = :cid
+    WHERE f.concurso_id = :cid AND f.estado = 'admitida'
     GROUP BY f.id
     ORDER BY votos DESC
     LIMIT 3

@@ -101,7 +101,7 @@ try {
         header("Location: ../../frontend/admin/gestion-usuarios.php?mensaje=" . urlencode("Datos actualizados correctamente.") . "&tipo=exito");
     } else {
         // Si es usuario normal, redirigir a su perfil
-        header("Location: ../../frontend/user/perfil-usuario.php?mensaje=" . urlencode("Datos actualizados correctamente.") . "&tipo=exito");
+        header("Location: ../../frontend/user/modificar-usuario.php?mensaje=" . urlencode("Datos actualizados correctamente.") . "&tipo=exito");
     }
 } catch (Exception $e) {
     if ($rol_id == 1) {
@@ -109,7 +109,7 @@ try {
         header("Location: ../../frontend/admin/gestion-usuarios.php?mensaje=" . urlencode("Error al actualizar: " . $e->getMessage()) . "&tipo=error");
     } else {
         // Si es usuario normal, redirigir a su perfil
-        header("Location: ../../frontend/user/perfil-usuario.php?mensaje=" . urlencode("Error al actualizar: " . $e->getMessage()) . "&tipo=error");
+        header("Location: ../../frontend/user/modificar-usuario.php?mensaje=" . urlencode("Error al actualizar: " . $e->getMessage()) . "&tipo=error");
     }
 }
 

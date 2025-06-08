@@ -41,7 +41,7 @@ $error = $_GET['error'] ?? '';
         <!-- Enlaces auxiliares -->
         <div class="mt-4 text-center">
             <p class="text-sm text-gray-600">
-                <a href="../public/index.php" class="text-amber-500 hover:text-amber-600 font-semibold">Volver al inicio</a>
+                <a href="../index.php" class="text-amber-500 hover:text-amber-600 font-semibold">Volver al inicio</a>
             </p>
             <p class="text-sm text-gray-600 mt-2">
                 <a href="../user/login-user.php" class="text-amber-500 hover:text-amber-600 font-semibold">Soy un usuario</a>

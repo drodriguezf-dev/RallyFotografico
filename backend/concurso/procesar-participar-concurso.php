@@ -56,6 +56,32 @@ if (isset($_POST['eliminar_id'])) {
 
 // Subir fotografía
 if (isset($_FILES['foto'])) {
+
+    // Verificar que no se haya superado el número máximo de participantes
+    $stmt = $conexion->prepare("SELECT COUNT(DISTINCT usuario_id) 
+FROM fotografias 
+WHERE concurso_id = :cid
+");
+    $stmt->execute(['cid' => $concurso_id]);
+    $participantes_actuales = $stmt->fetchColumn();
+
+    if ($participantes_actuales >= $concurso['max_participantes']) {
+        // Si el usuario ya ha participado, se le permite subir más fotos hasta su límite
+        $stmt = $conexion->prepare("SELECT COUNT(*) 
+    FROM fotografias 
+    WHERE usuario_id = :uid AND concurso_id = :cid
+");
+        $stmt->execute([
+            'uid' => $_SESSION['usuario_id'],
+            'cid' => $concurso_id
+        ]);
+        $ya_participo = $stmt->fetchColumn();
+
+        if ($ya_participo == 0) {
+            header("Location: ../../frontend/concurso/participar-concurso.php?id=$concurso_id&error=participantes_completos");
+            exit;
+        }
+    }
     // Contar fotos ya subidas por el usuario
     $stmt = $conexion->prepare("SELECT COUNT(*) FROM fotografias WHERE usuario_id = :uid AND concurso_id = :cid");
     $stmt->execute([
