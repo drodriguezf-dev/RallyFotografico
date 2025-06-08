@@ -47,8 +47,8 @@ CREATE TABLE concursos (
     max_participantes INT DEFAULT 100,
     tamano_maximo_bytes INT DEFAULT 2097152,
     formatos_aceptados VARCHAR(255) DEFAULT 'image/jpeg,image/png',
-    foto_concurso_base64 LONGTEXT DEFAULT NULL,
-    foto_concurso_mime_type VARCHAR(50) DEFAULT NULL,
+    imagen_portada_base64 LONGTEXT DEFAULT NULL,
+    imagen_portada_mime_type VARCHAR(50) DEFAULT NULL,
     fecha_inicio_votacion DATETIME NOT NULL,
     fecha_fin_votacion DATETIME NOT NULL
 );
