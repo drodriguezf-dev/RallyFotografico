@@ -31,6 +31,7 @@ $mensaje = $_GET['mensaje'] ?? "";
     <title>Modificar Concurso</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-6">
     <div class="w-full max-w-3xl bg-white shadow-2xl rounded-2xl p-10">
         <h1 class="text-3xl font-bold mb-8 text-orange-600">Modificar Concurso</h1>
@@ -43,7 +44,7 @@ $mensaje = $_GET['mensaje'] ?? "";
         <?php endif; ?>
 
         <?php if ($concurso): ?>
-            <form method="post" action="../../backend/concurso/procesar-modificar-concurso.php?id=<?= $concurso_id ?>" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form method="post" action="../../backend/concurso/procesar-modificar-concurso.php?id=<?= $concurso_id ?>" class="grid grid-cols-1 md:grid-cols-2 gap-6" enctype="multipart/form-data">
 
                 <!-- Campo genérico reutilizable -->
                 <?php function campo($etiqueta, $nombre, $valor, $tipo = "text", $extra = '')
@@ -59,6 +60,17 @@ $mensaje = $_GET['mensaje'] ?? "";
                     <label class="block text-sm font-semibold text-gray-800 mb-1">Título</label>
                     <input type="text" name="titulo" value="<?= htmlspecialchars($concurso['titulo']) ?>"
                         class="w-full px-4 py-2 bg-gray-50 shadow-inner rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all duration-200" required>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-semibold text-gray-800 mb-1" for="descripcion">Descripción</label>
+                    <textarea name="descripcion" id="descripcion" rows="5"
+                        class="w-full px-4 py-2 bg-gray-50 shadow-inner rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all duration-200"><?= htmlspecialchars($concurso['descripcion']) ?></textarea>
+                </div>
+
+                <div class="col-span-2">
+                    <label class="block text-sm font-semibold text-gray-800 mb-1" for="reglas">Reglas</label>
+                    <textarea name="reglas" id="reglas" rows="5"
+                        class="w-full px-4 py-2 bg-gray-50 shadow-inner rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all duration-200"><?= htmlspecialchars($concurso['reglas']) ?></textarea>
                 </div>
 
                 <?php
@@ -83,6 +95,18 @@ $mensaje = $_GET['mensaje'] ?? "";
                         <option value="20971520" <?= $concurso['tamano_maximo_bytes'] == 20971520 ? 'selected' : '' ?>>20 MB</option>
                     </select>
                 </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-semibold text-gray-800 mb-1" for="imagen_portada">Imagen de portada (opcional)</label>
+                    <input type="file" name="imagen_portada" id="imagen_portada" accept="image/*"
+                        class="w-full px-4 py-2 bg-gray-50 shadow-inner rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 transition-all duration-200">
+                    <?php if (!empty($concurso['imagen_portada_base64']) && !empty($concurso['imagen_portada_mime'])): ?>
+                        <div class="mt-4 flex-shrink-0 h-48 w-full overflow-hidden flex items-center justify-center bg-white rounded">
+                            <img src="data:<?= htmlspecialchars($concurso['imagen_portada_mime']) ?>;base64,<?= $concurso['imagen_portada_base64'] ?>"
+                                alt="Imagen actual de portada"
+                                class="max-h-full max-w-full object-contain">
+                        </div>
+                    <?php endif; ?>
+                </div>
 
                 <div class="col-span-2">
                     <label class="block text-sm font-semibold text-gray-800 mb-1">Formatos aceptados</label>
@@ -92,9 +116,7 @@ $mensaje = $_GET['mensaje'] ?? "";
                         $todos_los_formatos = [
                             'image/jpeg' => 'JPEG (.jpg)',
                             'image/png'  => 'PNG (.png)',
-                            'image/webp' => 'WebP (.webp)',
-                            'image/gif'  => 'GIF (.gif)'
-                        ];
+                            'image/webp' => 'WebP (.webp)'                        ];
                         foreach ($todos_los_formatos as $valor => $texto):
                             $checked = in_array($valor, $formatos_actuales) ? 'checked' : '';
                         ?>
@@ -118,6 +140,7 @@ $mensaje = $_GET['mensaje'] ?? "";
             </form>
         <?php endif; ?>
     </div>
+    
 </body>
 
 </html>

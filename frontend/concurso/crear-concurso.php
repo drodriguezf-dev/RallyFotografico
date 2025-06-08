@@ -27,15 +27,15 @@ if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] == 3) {
     <div id="errorBox" class="max-w-3xl mx-auto bg-red-100 text-red-700 border border-red-300 rounded p-4 mb-4 text-center font-semibold hidden"></div>
 
     <?php if (isset($_GET['error'])): ?>
-    <div class="max-w-3xl mx-auto bg-red-100 text-red-700 border border-red-300 rounded p-4 mb-4 text-center font-semibold">
-        <?php echo htmlspecialchars($_GET['error']); ?>
-    </div>
+        <div class="max-w-3xl mx-auto bg-red-100 text-red-700 border border-red-300 rounded p-4 mb-4 text-center font-semibold">
+            <?php echo htmlspecialchars($_GET['error']); ?>
+        </div>
     <?php elseif (isset($_GET['exito'])): ?>
-    <div class="max-w-3xl mx-auto bg-green-100 text-green-700 border border-green-300 rounded p-4 mb-4 text-center font-semibold">
-        <?php echo htmlspecialchars($_GET['exito']); ?>
-    </div>
+        <div class="max-w-3xl mx-auto bg-green-100 text-green-700 border border-green-300 rounded p-4 mb-4 text-center font-semibold">
+            <?php echo htmlspecialchars($_GET['exito']); ?>
+        </div>
     <?php endif; ?>
-    <form id="form-concurso" method="POST" action="../../backend/concurso/procesar-crear-concurso.php" class="max-w-3xl mx-auto bg-white shadow-md rounded p-6 space-y-4">
+    <form id="form-concurso" method="POST" action="../../backend/concurso/procesar-crear-concurso.php" class="max-w-3xl mx-auto bg-white shadow-md rounded p-6 space-y-4" enctype="multipart/form-data">
         <div>
             <label class="block font-medium">Título:</label>
             <input type="text" name="titulo" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-300" />
@@ -54,22 +54,22 @@ if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] == 3) {
         <div class="grid md:grid-cols-2 gap-4">
             <div>
                 <label class="block font-medium">Fecha de inicio:</label>
-                <input type="datetime-local" name="fecha_inicio"  class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-300" />
+                <input type="datetime-local" name="fecha_inicio" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-300" />
             </div>
             <div>
                 <label class="block font-medium">Fecha de fin:</label>
-                <input type="datetime-local" name="fecha_fin"  class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-300" />
+                <input type="datetime-local" name="fecha_fin" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-300" />
             </div>
         </div>
 
         <div class="grid md:grid-cols-2 gap-4">
             <div>
                 <label class="block font-medium">Inicio votación:</label>
-                <input type="datetime-local" name="fecha_inicio_votacion"  class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-300" />
+                <input type="datetime-local" name="fecha_inicio_votacion" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-300" />
             </div>
             <div>
                 <label class="block font-medium">Fin votación:</label>
-                <input type="datetime-local" name="fecha_fin_votacion"  class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-300" />
+                <input type="datetime-local" name="fecha_fin_votacion" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-300" />
             </div>
         </div>
 
@@ -100,10 +100,14 @@ if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] == 3) {
                 </select>
             </div>
         </div>
+        <div>
+            <label class="block font-medium mb-2" for="foto_concurso">Foto del Concurso (opcional):</label>
+            <input type="file" name="foto_concurso" id="foto_concurso" accept="image/jpeg, image/png, image/webp" class="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-green-300" />
+        </div>
 
         <div>
             <label class="block font-medium mb-2">Formatos aceptados:</label>
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid gap-2">
                 <label class="flex items-center space-x-2">
                     <input type="checkbox" name="formatos_aceptados[]" value="image/jpeg" class="text-green-500 focus:ring-green-300" checked>
                     <span>JPEG (.jpg)</span>
@@ -115,10 +119,6 @@ if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] == 3) {
                 <label class="flex items-center space-x-2">
                     <input type="checkbox" name="formatos_aceptados[]" value="image/webp" class="text-green-500 focus:ring-green-300">
                     <span>WebP (.webp)</span>
-                </label>
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" name="formatos_aceptados[]" value="image/gif" class="text-green-500 focus:ring-green-300">
-                    <span>GIF (.gif)</span>
                 </label>
             </div>
         </div>
@@ -132,63 +132,73 @@ if (!isset($_SESSION['rol_id']) || $_SESSION['rol_id'] == 3) {
         <a href="../index.php" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded">Volver al inicio</a>
     </div>
     <script>
-    const form = document.getElementById('form-concurso');
-    const errorBox = document.getElementById('errorBox');
+        const form = document.getElementById('form-concurso');
+        const errorBox = document.getElementById('errorBox');
 
-    form.addEventListener('submit', function (e) {
-        let errors = [];
+        form.addEventListener('submit', function(e) {
+            let errors = [];
 
-        // Validar título
-        const titulo = form.titulo.value.trim();
-        if (!titulo) errors.push("El título es obligatorio.");
+            // Validar título
+            const titulo = form.titulo.value.trim();
+            if (!titulo) errors.push("El título es obligatorio.");
 
-        // Validar fechas
-        const fecha_inicio = form.fecha_inicio.value;
-        const fecha_fin = form.fecha_fin.value;
-        const fecha_inicio_votacion = form.fecha_inicio_votacion.value;
-        const fecha_fin_votacion = form.fecha_fin_votacion.value;
+            // Validar fechas
+            const fecha_inicio = form.fecha_inicio.value;
+            const fecha_fin = form.fecha_fin.value;
+            const fecha_inicio_votacion = form.fecha_inicio_votacion.value;
+            const fecha_fin_votacion = form.fecha_fin_votacion.value;
 
-        if (!fecha_inicio) errors.push("La fecha de inicio es obligatoria.");
-        if (!fecha_fin) errors.push("La fecha de fin es obligatoria.");
-        if (!fecha_inicio_votacion) errors.push("La fecha de inicio de votación es obligatoria.");
-        if (!fecha_fin_votacion) errors.push("La fecha de fin de votación es obligatoria.");
+            if (!fecha_inicio) errors.push("La fecha de inicio es obligatoria.");
+            if (!fecha_fin) errors.push("La fecha de fin es obligatoria.");
+            if (!fecha_inicio_votacion) errors.push("La fecha de inicio de votación es obligatoria.");
+            if (!fecha_fin_votacion) errors.push("La fecha de fin de votación es obligatoria.");
 
-        if (fecha_inicio && fecha_fin) {
+            if (fecha_inicio && fecha_fin) {
+                const inicio = new Date(fecha_inicio);
+                const fin = new Date(fecha_fin);
+                const ahora = new Date();
+
+                if (fin < inicio) {
+                    errors.push("La fecha de fin no puede ser anterior a la fecha de inicio.");
+                }
+                if (fin <= ahora) {
+                    errors.push("No se puede crear un concurso que ya haya terminado.");
+                }
+            }
+
+            if (fecha_inicio_votacion && fecha_fin_votacion) {
+                const inicioVot = new Date(fecha_inicio_votacion);
+                const finVot = new Date(fecha_fin_votacion);
+
+                if (finVot < inicioVot) {
+                    errors.push("La fecha de fin de votación no puede ser anterior a la fecha de inicio de votación.");
+                }
+            }
+
+            // Validar que al menos un formato esté seleccionado
+            const formatos = form.querySelectorAll('input[name="formatos_aceptados[]"]:checked');
+            if (formatos.length === 0) errors.push("Debes seleccionar al menos un formato aceptado.");
+
+            if (errors.length > 0) {
+                e.preventDefault();
+                errorBox.innerHTML = errors.join("<br>");
+                errorBox.classList.remove("hidden");
+                errorBox.scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                errorBox.classList.add("hidden");
+            }
+        });
+        if (fecha_inicio && fecha_inicio_votacion) {
             const inicio = new Date(fecha_inicio);
-            const fin = new Date(fecha_fin);
-            const ahora = new Date();
-
-            if (fin < inicio) {
-                errors.push("La fecha de fin no puede ser anterior a la fecha de inicio.");
-            }
-            if (fin <= ahora) {
-                errors.push("No se puede crear un concurso que ya haya terminado.");
-            }
-        }
-
-        if (fecha_inicio_votacion && fecha_fin_votacion) {
             const inicioVot = new Date(fecha_inicio_votacion);
-            const finVot = new Date(fecha_fin_votacion);
 
-            if (finVot < inicioVot) {
-                errors.push("La fecha de fin de votación no puede ser anterior a la fecha de inicio de votación.");
+            if (inicioVot < inicio) {
+                errors.push("La fecha de inicio de votación no puede ser anterior a la fecha de inicio del concurso.");
             }
         }
-
-        // Validar que al menos un formato esté seleccionado
-        const formatos = form.querySelectorAll('input[name="formatos_aceptados[]"]:checked');
-        if (formatos.length === 0) errors.push("Debes seleccionar al menos un formato aceptado.");
-
-        if (errors.length > 0) {
-            e.preventDefault();
-            errorBox.innerHTML = errors.join("<br>");
-            errorBox.classList.remove("hidden");
-            errorBox.scrollIntoView({ behavior: "smooth" });
-        } else {
-            errorBox.classList.add("hidden");
-        }
-    });
-</script>
+    </script>
 </body>
 
 </html>

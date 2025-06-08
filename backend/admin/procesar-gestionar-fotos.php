@@ -41,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // Volver al panel tras la acción
-    header("Location: ../../frontend/admin/gestionar-fotos.php");
+    $return_url = $_POST['return_url'] ?? '../../frontend/admin/gestionar-fotos.php';
+    header("Location: $return_url");
+
     exit;
 }

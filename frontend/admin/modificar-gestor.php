@@ -3,13 +3,22 @@ require_once("../../utils/variables.php");
 require_once("../../utils/funciones.php");
 
 session_start();
-if (!isset($_SESSION['admin_id']) || $_SESSION['rol_id'] != 2) {
+if (!isset($_SESSION['admin_id'])) {
     header("Location: ../index.php");
     exit;
 }
 
 $conexion = conectarPDO($host, $user, $password, $bbdd);
-$gestor_id = $_SESSION['admin_id'] ?? null;
+
+$rol_id = $_SESSION['rol_id'] ?? null;
+
+if ($rol_id == 1) {
+    if (isset($_GET['id']) && ctype_digit($_GET['id'])) {
+        $gestor_id = (int) $_GET['id'];
+    }
+} else {
+    $gestor_id = $_SESSION['admin_id'] ?? null;
+}
 
 if (!$gestor_id) {
     header("Location: ../index.php");

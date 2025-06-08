@@ -3,14 +3,24 @@ require_once("../../utils/variables.php");
 require_once("../../utils/funciones.php");
 
 session_start();
-if (!isset($_SESSION['usuario_id'])) {
+if (!isset($_SESSION['usuario_id']) && !isset($_SESSION['admin_id'])) {
     header("Location: ../../frontend/index.php");
     exit;
 }
 
 $conexion = conectarPDO($host, $user, $password, $bbdd);
-$usuario_id = $_SESSION['usuario_id'];
+$rol_id = $_SESSION['rol_id'] ?? null; // Obtén el rol del usuario desde sesión
+$usuario_id_sesion = $_SESSION['usuario_id'] ?? null; // Usuario ID de la sesión
 
+// Por defecto, el usuario_id es el de la sesión
+$usuario_id = $usuario_id_sesion;
+
+// Si es admin, usa el id que viene por GET, si es válido
+if ($rol_id == 1) {
+    if (isset($_POST['id']) && ctype_digit($_POST['id'])) {
+        $usuario_id = $_POST['id'];
+    }
+}
 $nombre = trim($_POST['nombre'] ?? '');
 $apellidos = trim($_POST['apellidos'] ?? '');
 $email = trim($_POST['email'] ?? '');
@@ -32,15 +42,21 @@ try {
     }
 
     // Verificar si ha cambiado algún campo (excepto password)
-    $sinCambios = 
+    $sinCambios =
         $usuarioActual['nombre'] === $nombre &&
         $usuarioActual['apellidos'] === $apellidos &&
         $usuarioActual['email'] === $email &&
         empty($password);
 
     if ($sinCambios) {
-        header("Location: ../../frontend/user/modificar-usuario.php?mensaje=" . urlencode("No se realizaron cambios en los datos.") . "&tipo=info");
-        exit;
+        if ($rol_id == 1) {
+            // Si es admin, redirigir a la gestión de usuarios
+            header("Location: ../../frontend/admin/gestion-usuarios.php?mensaje=" . urlencode("No se realizaron cambios en los datos.") . "&tipo=error");
+            exit;
+        } else {
+            // Si es usuario normal, redirigir a su perfil
+            header("Location: ../../frontend/user/modificar-usuario.php?mensaje=" . urlencode("No se realizaron cambios en los datos.") . "&tipo=info");
+            exit;        }
     }
 
     // Verificar que el email no esté en uso por otro usuario o admin
@@ -80,9 +96,20 @@ try {
 
     $_SESSION['email'] = $email;
 
-    header("Location: ../../frontend/user/modificar-usuario.php?mensaje=" . urlencode("Datos actualizados correctamente.") . "&tipo=exito");
-    exit;
+    if ($rol_id == 1) {
+        // Si es admin, redirigir a la gestión de usuarios
+        header("Location: ../../frontend/admin/gestion-usuarios.php?mensaje=" . urlencode("Datos actualizados correctamente.") . "&tipo=exito");
+    } else {
+        // Si es usuario normal, redirigir a su perfil
+        header("Location: ../../frontend/user/perfil-usuario.php?mensaje=" . urlencode("Datos actualizados correctamente.") . "&tipo=exito");
+    }
 } catch (Exception $e) {
-    header("Location: ../../frontend/user/modificar-usuario.php?mensaje=" . urlencode("Error al actualizar: " . $e->getMessage()) . "&tipo=error");
-    exit;
+    if ($rol_id == 1) {
+        // Si es admin, redirigir a la gestión de usuarios
+        header("Location: ../../frontend/admin/gestion-usuarios.php?mensaje=" . urlencode("Error al actualizar: " . $e->getMessage()) . "&tipo=error");
+    } else {
+        // Si es usuario normal, redirigir a su perfil
+        header("Location: ../../frontend/user/perfil-usuario.php?mensaje=" . urlencode("Error al actualizar: " . $e->getMessage()) . "&tipo=error");
+    }
 }
+

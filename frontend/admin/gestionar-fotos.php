@@ -67,8 +67,8 @@ foreach ($fotos as $foto) {
                         <?php endif; ?>
                     </h2>
                     <div class="flex items-center gap-3">
-                        <a href="ver-concurso.php?id=<?= $id_concurso ?>" class="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700">
-                            Ver concurso
+                        <a href="gestionar-concurso.php?id=<?= $id_concurso ?>" class="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700">
+                            Gestionar concurso
                         </a>
                         <form method="post" action="../../backend/admin/procesar-gestionar-fotos.php" class="eliminar-concurso-form" data-titulo="<?= htmlspecialchars($titulo_concurso) ?>">
                             <input type="hidden" name="concurso_id" value="<?= $id_concurso ?>">
@@ -166,7 +166,7 @@ foreach ($fotos as $foto) {
             if (formEliminarFoto) {
                 const input = document.createElement('input');
                 input.type = 'hidden';
-                input.name = 'eliminar_foto';
+                input.name = 'eliminar';
                 input.value = '1';
                 formEliminarFoto.appendChild(input);
                 formEliminarFoto.submit();

@@ -1,105 +1,109 @@
 <?php
+require_once("../../utils/variables.php");
+require_once("../../utils/funciones.php");
 session_start();
-require_once 'utils/db.php'; // conexión PDO
-require_once 'utils/auth.php'; // para verificar login y roles
 
-// Verifica si el usuario está autenticado y tiene permisos
-if (!isset($_SESSION['usuario_id'])) {
-    header("Location: login.php");
-    exit;
-}
+$conexion = conectarPDO($host, $user, $password, $bbdd);
 
-// Obtener el rol del usuario
-$usuario_id = $_SESSION['usuario_id'];
-$stmt = $pdo->prepare("SELECT rol_id FROM usuarios WHERE id = ?");
-$stmt->execute([$usuario_id]);
-$rol = $stmt->fetchColumn();
-
-if ($rol != 1 && $rol != 2) { // Solo admin o gestor
-    header("Location: listado.php");
-    exit;
-}
-
-// Validar que se ha pasado un ID de concurso
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    header("Location: listado.php");
+if (!isset($_SESSION['admin_id']) || !isset($_SESSION['rol_id']) || $_SESSION['rol_id'] == 3) {
+    header("Location: ../login.php");
     exit;
 }
 
 $concurso_id = $_GET['id'];
-
-// Obtener datos del concurso
-$stmt = $pdo->prepare("SELECT * FROM concursos WHERE id = ?");
-$stmt->execute([$concurso_id]);
-$concurso = $stmt->fetch();
+$stmt = $conexion->prepare("SELECT * FROM concursos WHERE id = :id");
+$stmt->execute(['id' => $concurso_id]);
+$concurso = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$concurso) {
-    echo "Concurso no encontrado.";
-    exit;
+    $mensaje_error = "Concurso no encontrado.";
 }
 
-// Obtener fotos del concurso
-$stmt = $pdo->prepare("SELECT f.*, u.nombre AS autor FROM fotos f JOIN usuarios u ON f.usuario_id = u.id WHERE f.concurso_id = ?");
-$stmt->execute([$concurso_id]);
-$fotos = $stmt->fetchAll();
-
+$stmt = $conexion->prepare("SELECT * FROM fotografias WHERE concurso_id = :cid");
+$stmt->execute(['cid' => $concurso_id]);
+$fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <title>Gestión del Concurso</title>
-    <style>
-        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
-        .foto-card {
-            display: inline-block;
-            width: 200px;
-            margin: 10px;
-            padding: 10px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.1);
-            vertical-align: top;
-            text-align: center;
-        }
-        img { max-width: 100%; height: auto; border-radius: 4px; }
-        .estado { font-weight: bold; }
-        .acciones form { display: inline; }
-    </style>
+    <title>Gestión de Concurso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
 
-<h1>Concurso: <?= htmlspecialchars($concurso['titulo']) ?></h1>
-<p><strong>Descripción:</strong> <?= nl2br(htmlspecialchars($concurso['descripcion'])) ?></p>
-<p><strong>Fecha de inicio:</strong> <?= htmlspecialchars($concurso['fecha_inicio']) ?></p>
+<body class="bg-gray-100 min-h-screen px-4 py-8">
+    <div class="max-w-6xl mx-auto bg-white p-6 rounded shadow">
+        <h1 class="text-2xl font-bold mb-4 text-gray-800">Gestionar: <?= htmlspecialchars($concurso['titulo'] ?? 'Concurso desconocido') ?></h1>
+        <a href="../index.php" class="inline-block mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded transition">Volver al índice</a>
 
-<h2>Fotos presentadas (<?= count($fotos) ?>)</h2>
+        <?php if (isset($mensaje_error)): ?>
+            <p class="text-red-600 mb-4"><?= htmlspecialchars($mensaje_error) ?></p>
+        <?php else: ?>
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-2 text-gray-700">Descripción</h2>
+                <p class="text-gray-700 whitespace-pre-line mb-4"><?= nl2br(htmlspecialchars($concurso['descripcion'])) ?></p>
 
-<?php if (count($fotos) == 0): ?>
-    <p>No hay fotos aún en este concurso.</p>
-<?php else: ?>
-    <?php foreach ($fotos as $foto): ?>
-        <div class="foto-card">
-            <img src="<?= htmlspecialchars($foto['ruta']) ?>" alt="Foto">
-            <p><strong>Autor:</strong> <?= htmlspecialchars($foto['autor']) ?></p>
-            <p class="estado">Estado: <?= htmlspecialchars($foto['estado']) ?></p>
+                <h2 class="text-xl font-semibold mb-2 text-gray-700">Reglas</h2>
+                <p class="text-gray-700 whitespace-pre-line mb-4"><?= nl2br(htmlspecialchars($concurso['reglas'])) ?></p>
 
-            <div class="acciones">
-                <!-- Botones de acción -->
-                <form method="post" action="gestionar-foto.php">
-                    <input type="hidden" name="foto_id" value="<?= $foto['id'] ?>">
-                    <input type="hidden" name="concurso_id" value="<?= $concurso_id ?>">
-                    <button name="accion" value="aprobar">Aprobar</button>
-                    <button name="accion" value="rechazar">Rechazar</button>
-                    <button name="accion" value="eliminar" onclick="return confirm('¿Estás seguro de eliminar esta foto?')">Eliminar</button>
-                </form>
+                <h2 class="text-xl font-semibold mb-2 text-gray-700">Configuración de Fotos</h2>
+                <ul class="text-gray-700 list-disc list-inside mb-4">
+                    <li><strong>Formatos permitidos:</strong> <?= htmlspecialchars($concurso['formatos_aceptados']) ?></li>
+                    <li><strong>Tamaño máximo por foto:</strong> <?= number_format($concurso['tamano_maximo_bytes'] / (1024 * 1024), 2) ?> MB</li>
+                </ul>
             </div>
+        <?php endif; ?>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <?php foreach ($fotos as $foto): ?>
+                <div class="border rounded p-3 bg-gray-50 shadow-sm flex flex-col h-[24rem]">
+                    <div class="flex-shrink-0 h-48 w-full mb-2 overflow-hidden flex items-center justify-center bg-white rounded">
+                        <img src="data:<?= htmlspecialchars($foto['mime_type']) ?>;base64,<?= $foto['imagen_base64'] ?>"
+                            alt="<?= htmlspecialchars($foto['titulo']) ?>"
+                            class="max-h-full max-w-full object-contain">
+                    </div>
+
+                    <div class="flex-grow overflow-auto">
+                        <h3 class="font-semibold text-lg"><?= htmlspecialchars($foto['titulo']) ?></h3>
+                        <p class="text-sm text-gray-600 mb-2"><?= nl2br(htmlspecialchars($foto['descripcion'])) ?></p>
+
+                        <ul class="text-xs text-gray-500 mb-2 space-y-1">
+                            <li><strong>Estado:</strong> <?= htmlspecialchars($foto['estado']) ?></li>
+                            <?php
+                            $base64_length = strlen($foto['imagen_base64']);
+                            $peso_bytes = ($base64_length * 3) / 4;
+                            ?>
+                            <li><strong>Peso:</strong> <?= number_format($peso_bytes / 1024, 2) ?> KB</li>
+                            <li><strong>Formato:</strong> <?= htmlspecialchars($foto['mime_type']) ?></li>
+                        </ul>
+
+                        <div class="flex flex-wrap gap-2 justify-end">
+                            <form method="post" action="../../backend/admin/procesar-gestionar-fotos.php" class="eliminar-foto-form" data-titulo="<?= htmlspecialchars($foto['titulo']) ?>">
+                                <input type="hidden" name="foto_id" value="<?= $foto['id'] ?>">
+                                <input type="hidden" name="return_url" value="<?= htmlspecialchars($_SERVER['REQUEST_URI']) ?>"> <!-- URL actual -->
+
+                                <?php if ($foto['estado'] !== 'admitida'): ?>
+                                    <button type="submit" name="aceptar" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+                                        Aceptar
+                                    </button>
+                                <?php endif; ?>
+                                <?php if ($foto['estado'] !== 'rechazada'): ?>
+                                    <button type="submit" name="rechazar" class="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700">
+                                        Rechazar
+                                    </button>
+                                <?php endif; ?>
+
+                                <button type="submit" name="eliminar" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700" onclick="return confirm('¿Seguro que deseas eliminar esta foto?');">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         </div>
-    <?php endforeach; ?>
-<?php endif; ?>
-
-<p><a href="panel-gestion.php">← Volver al panel</a></p>
-
+    </div>
 </body>
+
 </html>

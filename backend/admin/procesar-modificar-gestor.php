@@ -9,15 +9,21 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 $conexion = conectarPDO($host, $user, $password, $bbdd);
-$gestor_id = $_SESSION['admin_id'];
+$rol_id = $_SESSION['rol_id'] ?? null;
+$gestor_id = $_POST['id'];
 
 $nombre = trim($_POST['nombre'] ?? '');
 $apellidos = trim($_POST['apellidos'] ?? '');
 $password = $_POST['password'] ?? '';
 
 if (empty($nombre) || empty($apellidos)) {
-    header("Location: ../../frontend/admin/modificar-gestor.php?mensaje=" . urlencode("Por favor, rellena todos los campos obligatorios.") . "&tipo=error");
-    exit;
+    if ($rol_id == 1) {
+        header("Location: ../../frontend/admin/gestion-usuarios.php?mensaje=" . urlencode("Por favor, rellena todos los campos obligatorios.") . "&tipo=error");
+        exit;
+    } else {
+        header("Location: ../../frontend/admin/modificar-gestor.php?mensaje=" . urlencode("Por favor, rellena todos los campos obligatorios.") . "&tipo=error");
+        exit;
+    }
 }
 
 try {
@@ -31,14 +37,19 @@ try {
     }
 
     // Verificar si ha cambiado algún campo (excepto password)
-    $sinCambios = 
+    $sinCambios =
         $gestorActual['nombre'] === $nombre &&
         $gestorActual['apellidos'] === $apellidos &&
         empty($password);
 
     if ($sinCambios) {
-        header("Location: ../../frontend/admin/modificar-gestor.php?mensaje=" . urlencode("No se realizaron cambios en los datos.") . "&tipo=info");
-        exit;
+        if ($rol_id == 1) {
+            header("Location: ../../frontend/admin/gestion-usuarios.php?mensaje=" . urlencode("No se realizaron cambios en los datos.") . "&tipo=info");
+            exit;
+        } else {
+            header("Location: ../../frontend/admin/modificar-gestor.php?mensaje=" . urlencode("No se realizaron cambios en los datos.") . "&tipo=info");
+            exit;
+        }
     }
 
     // Ejecutar la actualización
@@ -60,9 +71,19 @@ try {
         ]);
     }
 
-    header("Location: ../../frontend/admin/modificar-gestor.php?mensaje=" . urlencode("Datos actualizados correctamente.") . "&tipo=exito");
-    exit;
+    if ($rol_id == 1) {
+        header("Location: ../../frontend/admin/gestion-usuarios.php?mensaje=" . urlencode("Datos actualizados correctamente.") . "&tipo=exito");
+        exit;
+    } else {
+        header("Location: ../../frontend/admin/modificar-gestor.php?mensaje=" . urlencode("Datos actualizados correctamente.") . "&tipo=exito");
+        exit;
+    }
 } catch (Exception $e) {
-    header("Location: ../../frontend/admin/modificar-gestor.php?mensaje=" . urlencode("Error al actualizar: " . $e->getMessage()) . "&tipo=error");
-    exit;
+    if ($rol_id == 1) {
+        header("Location: ../../frontend/admin/gestion-usuarios.php?mensaje=" . urlencode("Error al actualizar: " . $e->getMessage()) . "&tipo=error");
+        exit;
+    } else {
+        header("Location: ../../frontend/admin/modificar-gestor.php?mensaje=" . urlencode("Error al actualizar: " . $e->getMessage()) . "&tipo=error");
+        exit;
+    }
 }

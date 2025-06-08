@@ -32,7 +32,7 @@ $error = $_GET['error'] ?? '';
             </div>
 
             <div>
-                <button type="submit" class="w-full bg-amber-300 hover:bg-amber-400 text-white font-semibold py-2 px-4 rounded transition">
+                <button type="submit" class="w-full bg-orange-400 hover:bg-orange-500 text-white font-semibold py-2 px-4 rounded transition">
                     Entrar
                 </button>
             </div>

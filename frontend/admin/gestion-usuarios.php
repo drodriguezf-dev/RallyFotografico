@@ -20,6 +20,9 @@ try {
 } catch (PDOException $e) {
     $usuarios = $gestores = [];
 }
+
+$mensaje = $_GET['mensaje'] ?? '';
+$tipo_mensaje = $_GET['tipo'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -33,6 +36,11 @@ try {
 <body class="bg-gray-100 min-h-screen p-6">
 
     <h1 class="text-3xl font-bold mb-6 text-center">Gestión de Usuarios</h1>
+    <?php if (!empty($mensaje)): ?>
+            <div class="mb-4 px-4 py-3 rounded text-center text-white <?= $tipo_mensaje === 'exito' ? 'bg-orange-500' : 'bg-red-600' ?>">
+                <?= htmlspecialchars($mensaje) ?>
+            </div>
+        <?php endif; ?>
 
     <div class="grid md:grid-cols-2 gap-8 mb-8">
         <!-- Tabla de Usuarios -->
@@ -54,7 +62,7 @@ try {
                             <td class="p-2"><?= htmlspecialchars($usuario['nombre'] . ' ' . $usuario['apellidos']) ?></td>
                             <td class="p-2"><?= htmlspecialchars($usuario['email']) ?></td>
                             <td class="p-2 flex justify-center space-x-2">
-                                <a href="modificar-usuario.php?id=<?= $usuario['id'] ?>" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded text-sm">
+                                <a href="../user/modificar-usuario.php?id=<?= $usuario['id'] ?>" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded text-sm">
                                     Modificar
                                 </a>
                                 <a href="#" data-url="../../backend/user/delete-user.php?id=<?= $usuario['id'] ?>" class="delete-button bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-3 rounded text-sm">

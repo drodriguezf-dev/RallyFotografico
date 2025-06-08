@@ -183,7 +183,7 @@ $mis_fotos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <?php if (!empty($foto['estado'])): ?>
                                     <span class="<?php
                                                     switch ($foto['estado']) {
-                                                        case 'aceptada':
+                                                        case 'admitida':
                                                             echo 'text-green-700 bg-green-100';
                                                             break;
                                                         case 'rechazada':

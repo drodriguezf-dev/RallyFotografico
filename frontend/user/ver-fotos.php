@@ -93,7 +93,7 @@ foreach ($fotos as $foto) {
         <?php endforeach; ?>
 
         <div class="mt-12 text-center">
-            <a href="index.php" class="inline-block bg-gray-800 text-white px-5 py-2 rounded hover:bg-gray-900 transition">
+            <a href="../index.php" class="inline-block bg-gray-800 text-white px-5 py-2 rounded hover:bg-gray-900 transition">
                 Volver al índice
             </a>
         </div>
