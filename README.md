@@ -54,7 +54,7 @@ http://localhost/RallyFotografico/frontend
 
 Si colocaste el proyecto en una subcarpeta, asegúrate de incluir la ruta completa en la URL.
 
-## 5. Manual de usuario
+## Manual de usuario
 
 ### Usuarios sin registrar (visitantes):
 Como visitante (sin iniciar sesión), puedes:
@@ -76,7 +76,7 @@ Ver el ranking con las 3 fotos más votadas de cada concurso.
 
 Eliminar fotos que hayas subido anteriormente.
 
-## 6. Manual de administrador
+## Manual de administrador
 
 Para iniciar sesión como administrador necesitaremos ir al login de usuario corriente y después clicar en acceso para trabajadores.
 
